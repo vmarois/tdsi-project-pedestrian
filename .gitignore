@@ -12,4 +12,5 @@
 *.m~
 bin/
 development/
+.idea/
 ~                  
