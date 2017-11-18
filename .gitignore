@@ -10,6 +10,7 @@
 *.mat
 *.gif
 *.m~
+*.jpg
 bin/
 development/
 .idea/
