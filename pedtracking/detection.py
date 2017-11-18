@@ -4,7 +4,6 @@ import numpy as np
 from imutils.object_detection import non_max_suppression
 
 
-
 def hogSVMDetection(hog, image):
     """
     This functions detects pedestrians in the passed image using the hog signature and the pre-trained SVM classifier

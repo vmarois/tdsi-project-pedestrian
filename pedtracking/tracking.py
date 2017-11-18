@@ -17,24 +17,27 @@ def bruteForceMatching(bf, kp1, des1, kp2, des2):
     keypoints.
     :return: the list of cv2.keypoints on the second image which have been matched with keypoints on the first image.
     """
+    if (des1 is not None) & (des2 is not None):
+        # get the list of matches of keypoints between kp1 & kp2
+        matches = bf.match(des1, des2)
 
-    # get the list of matches of keypoints between kp1 & kp2
-    matches = bf.match(des1, des2)
+        # we now select the keypoints in kp2 which have been matched with keypoints in kp1
+        keypointsList = []
 
-    # we now select the keypoints in kp2 which have been matched with keypoints in kp1
-    keypointsList = []
+        for match in matches:
+            keypointsList.append(kp2[match.trainIdx])  # the trainIdx param of cv2.DMatch is the index of the descriptor
+            # in the train descriptors list, i.e the list of descriptors associated with the second image.
 
-    for match in matches:
-        keypointsList.append(kp2[match.trainIdx])  # the trainIdx param of cv2.DMatch is the index of the descriptor
-        # in the train descriptors list, i.e the list of descriptors associated with the second image.
+        # we select the associated descriptors
+        descriptors = np.ndarray((len(keypointsList), 64))
 
-    # we select the associated descriptors
-    descriptors = np.ndarray((len(keypointsList), 64))
+        for idx, match in enumerate(matches):
+            descriptors[idx] = des2[match.trainIdx]
 
-    for idx, match in enumerate(matches):
-        descriptors[idx] = des2[match.trainIdx]
-
-    return keypointsList, descriptors
+        return keypointsList, descriptors
+    else:
+        print('One or both of the descriptors array is empty. Cannot perform Brute Force Matching.')
+        return [], None
 
 
 def updateRectangle(keypoints, delta=30):
@@ -47,13 +50,16 @@ def updateRectangle(keypoints, delta=30):
     margin.
     :return: xA, yA, xB, yB the coordinates used to draw the rectangle afterwards.
     """
+    if keypoints:
+        pts = [keypoint.pt for keypoint in keypoints]
 
-    pts = [keypoint.pt for keypoint in keypoints]
+        xA = (round(min([coord[0] for coord in pts]) - delta) if round(min([coord[0] for coord in pts]) - delta) > 0 else 0)
+        xB = round(max([coord[0] for coord in pts]) + delta)
 
-    xA = (round(min([coord[0] for coord in pts]) - delta) if round(min([coord[0] for coord in pts]) - delta) > 0 else 0)
-    xB = round(max([coord[0] for coord in pts]) + delta)
+        yA = (round(min([coord[1] for coord in pts]) - delta) if round(min([coord[1] for coord in pts]) - delta) > 0 else 0)
+        yB = round(max([coord[1] for coord in pts]) + delta)
 
-    yA = (round(min([coord[1] for coord in pts]) - delta) if round(min([coord[1] for coord in pts]) - delta) > 0 else 0)
-    yB = round(max([coord[1] for coord in pts]) + delta)
-
-    return xA, yA, xB, yB
+        return xA, yA, xB, yB
+    else:
+        print('The provided keypoints list is empty. (xA, yA, xB, yB) returned as null values')
+        return 0, 0, 0, 0

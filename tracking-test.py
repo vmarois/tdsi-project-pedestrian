@@ -92,6 +92,6 @@ for imagePath in trackingImages:
         DETECTION_COUNT += 1
 
     cv2.imshow("{}".format(imagePath), image)
-    cv2.waitKey(50)  # display images at roughly 15 fps
+    cv2.waitKey(1)  # display images at roughly 15 fps
     cv2.destroyAllWindows()
     print('\n')
