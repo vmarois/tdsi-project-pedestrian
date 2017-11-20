@@ -30,7 +30,7 @@ DETECTION_COUNT = 0
 previousKeypoints = []
 
 # empty numpy.ndarray to store the previous descriptors
-previousDescriptors = np.empty((30, 64))  # QUESTION OF DYNAMIC ALLOCATION ??
+previousDescriptors = np.empty((0, 0))
 
 data_path = 'data/'
 # first, get the list of the images located in the data_path folder. These images names (e.g. 'tracking_0001.jpeg') will
@@ -59,27 +59,47 @@ for imagePath in trackingImages:
         # (corresponds to previous frame).
         # only care about the first pedestrian for now
 
+        print('(xA, yA, xB, yB) = ', (xA, yA, xB, yB))
         pedestrian = image[yA: yB, xA: xB]  # select the region to search for the keypoints
+
+        print('Number of previous keypoints : ', len(previousKeypoints))
+        print('Number of associated descriptors : ', previousDescriptors.shape)
 
         # find keypoints and descriptors using SURF
         currentKeypoints, currentDescriptors = surf.detectAndCompute(pedestrian, None)
-        print('Number of keypoints found: ', len(currentKeypoints))
+        print('Number of current keypoints found: ', len(currentKeypoints))
         print('Number of associated descriptors : ', currentDescriptors.shape)
 
-        # update the keypoints coordinates
-        for keypoint in currentKeypoints:
-            (x, y) = keypoint.pt
-            x += xA
-            y += yA
-            keypoint.pt = (x, y)
-        print('Keypoints coordinates updated')
+        if DETECTION_COUNT == 0:
+            print('This is the reference frame. Not performing Brute Force Matching.')
+            # update the keypoints coordinates
+            for keypoint in currentKeypoints:
+                (x, y) = keypoint.pt
+                x += xA
+                y += yA
+                keypoint.pt = (x, y)
+            print('Keypoints coordinates updated')
+
+        else:
+            print('We should have some reference from the previous frame. Performing BFMatching.')
+            #currentKeypoints, currentDescriptors = bruteForceMatching(bf, previousKeypoints,
+             #                                                         previousDescriptors,
+              #                                                        currentKeypoints,
+               #                                                       currentDescriptors)
+            # update the keypoints coordinates
+            for keypoint in currentKeypoints:
+                (x, y) = keypoint.pt
+                x += xA
+                y += yA
+                keypoint.pt = (x, y)
+            print('Keypoints coordinates updated.')
 
         # save the current keypoints as the previous ones
         previousKeypoints = currentKeypoints
 
         # save the current descriptors as the previous ones
         previousDescriptors = currentDescriptors
-
+        print('previousDescriptors : ', type(previousDescriptors), ' ', previousDescriptors.shape)
         # update the bounding rectangles coordinates and save them
         xA, yA, xB, yB = updateRectangle(currentKeypoints, delta=20)
         rects[0] = (xA, yA, xB, yB)
