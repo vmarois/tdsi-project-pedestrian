@@ -1,14 +1,16 @@
 # this file is part of tdsi-project-pedestrian
 
-
 import numpy as np
+from scipy.spatial.distance import cdist
 
-def bruteForceMatching(bf, kp1, des1, kp2, des2):
+
+def bruteForceMatching(kp1, des1, kp2, des2):
     """
-    This functions matches SURF keypoints between 2 images using the Brute Force technique. It returns the list of
+    This function matches SURF keypoints between 2 images using the Brute Force technique. It returns the list of
     keypoints present on the second image (i.e the next frame in a video) that have been matched with keypoints on the
-    first image (i.e the previous frame in a video).
-    :param bf: the BruteForceMatcher object
+    first image (i.e the previous frame in a video). The matching is done via computing the distance (in the sense of
+    the L2-norm) between the respective descriptors of each keypoints. Then, the pairs of keypoints with minimal
+    distance is extracted (a 'good' distance is supposed to be < 0.5) in increasing distance order.
     :param kp1: the list of keypoints determined by the SURF algorithm on the first image.
     :param des1: the numpy.ndarray of shape (len(kp1), 64) containing the descriptors associated with the first list of
     keypoints.
@@ -17,24 +19,52 @@ def bruteForceMatching(bf, kp1, des1, kp2, des2):
     keypoints.
     :return: the list of cv2.keypoints on the second image which have been matched with keypoints on the first image.
     """
+
     if (des1 is not None) & (des2 is not None):
-        # get the list of matches of keypoints between kp1 & kp2
-        matches = bf.match(des1, des2)
 
-        # we now select the keypoints in kp2 which have been matched with keypoints in kp1
-        keypointsList = []
+        dists = cdist(des2, des1, p=2)  # outputs a matrix of distances of shape (len(kp2) , len(kp1) )
+        # the lower the distance between 2 keypoints, the better
 
-        for match in matches:
-            keypointsList.append(kp2[match.trainIdx])  # the trainIdx param of cv2.DMatch is the index of the descriptor
-            # in the train descriptors list, i.e the list of descriptors associated with the second image.
+        copyDists = dists.copy()  # create a copy of the distances matrix
 
-        # we select the associated descriptors
-        descriptors = np.ndarray((len(keypointsList), 64))
+        result = []  # empty list to store the result in the form (keypoint2Idx, keypoint2Idx, distance)
 
-        for idx, match in enumerate(matches):
-            descriptors[idx] = des2[match.trainIdx]
+        for i in range(min(len(kp1), len(kp2))):
+            # get the indices of the smallest value in distances, i.e the best keypoints pair
+            tempIdx = np.unravel_index(dists.argmin(), dists.shape)
 
-        return keypointsList, descriptors
+            # get the associated distance
+            value = dists[tempIdx[0], tempIdx[1]]
+
+            # delete the row & column containing this minimum, as the pair of keypoints have to be independent,
+            # i.e a keypoint in the first list cannot be matched to 2 or more keypoints in list 2 & vice-versa
+
+            dists = np.delete(np.delete(dists, tempIdx[0], axis=0), tempIdx[1], axis=1)
+
+            # get the 'original' indices of the minimum value (using an untouched copy of distances, since the indices
+            # change when we remove rows or columns)
+            trueIdx = np.where(copyDists == value)
+            trueIdx = (trueIdx[0][0], trueIdx[1][0])  # from a tuple of np.arrays to a simpler tuple
+
+            # append the real indices & the distance value to result
+            result.append((trueIdx[0], trueIdx[1], value))
+
+        # We consider a match between 2 keypoints to be good if the distance is < 0.5. Hence, we discard those which
+        # do not respect this condition
+        result = [element for element in result if element[2] < 0.8]
+
+        # we now select the keypoints (& associated descriptors) in kp2 that were matched with a keypoint in kp1.
+        keypoints = []
+        descriptors = np.empty((len(result), 64))
+
+        for idx, element in enumerate(result):
+            keypoints.append(kp2[element[0]])
+            descriptors[idx] = des2[element[0]]
+
+        # finally, return the keypoints (& their descriptors) of kp2 that were matched with a keypoint in kp1, and
+        # respect distance < 0.5
+        return keypoints, descriptors
+
     else:
         print('One or both of the descriptors array is empty. Cannot perform Brute Force Matching.')
         return [], None

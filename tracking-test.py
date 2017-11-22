@@ -82,10 +82,10 @@ for imagePath in trackingImages:
 
         else:
             print('We should have some reference from the previous frame. Performing BFMatching.')
-            #currentKeypoints, currentDescriptors = bruteForceMatching(bf, previousKeypoints,
-             #                                                         previousDescriptors,
-              #                                                        currentKeypoints,
-               #                                                       currentDescriptors)
+            currentKeypoints, currentDescriptors = bruteForceMatching(previousKeypoints,
+                                                                      previousDescriptors,
+                                                                      currentKeypoints,
+                                                                      currentDescriptors)
             # update the keypoints coordinates
             for keypoint in currentKeypoints:
                 (x, y) = keypoint.pt
@@ -101,7 +101,7 @@ for imagePath in trackingImages:
         previousDescriptors = currentDescriptors
         print('previousDescriptors : ', type(previousDescriptors), ' ', previousDescriptors.shape)
         # update the bounding rectangles coordinates and save them
-        xA, yA, xB, yB = updateRectangle(currentKeypoints, delta=20)
+        xA, yA, xB, yB = updateRectangle(currentKeypoints, delta=30)
         rects[0] = (xA, yA, xB, yB)
 
         # draw the bounding rectangle & keypoints
