@@ -51,7 +51,7 @@ def bruteForceMatching(kp1, des1, kp2, des2):
 
         # We consider a match between 2 keypoints to be good if the distance is < 0.5. Hence, we discard those which
         # do not respect this condition
-        result = [element for element in result if element[2] < 0.8]
+        result = [element for element in result if element[2] < 0.9]
 
         # we now select the keypoints (& associated descriptors) in kp2 that were matched with a keypoint in kp1.
         keypoints = []
@@ -95,3 +95,26 @@ def updateRectangle(keypoints, xMargin=30, yMargin=30):
     else:
         print('The provided keypoints list is empty. (xA, yA, xB, yB) returned as null values')
         return 0, 0, 0, 0
+
+
+def updateMargin(xMarginStart, yMarginStart, NbTotImg, countFromDetection):
+    """
+    This function updates the margin used to modify the bounding rectangle size.
+    Since the size of the pedestrian is decreasing with every new frame, so should the bounding rectangle size.
+    The method used here is a linear decrease : we start to decrease the margin when the pedestrian has been detected,
+    at a rate of (NbTotImg - countFromDetection)/NbTotImg, with countFromDetection increasing at each new frame.
+    It returns the updated x-axis margin & y-axis margin
+    :param xMarginStart: The initial margin for the x axis.
+    :param yMarginStart: The initial margin for the y axis.
+    :param NbTotImg: The total number of frames in the video
+    :param countFromDetection: the index of the current, taking for reference the frame where the pedestrian has been
+    detected.
+    :return: xMargin, yMargin updated.
+    """
+
+    # define the decreasing rate
+    rate = (NbTotImg - countFromDetection)/NbTotImg
+    xMargin = round(xMarginStart * rate)
+    yMargin = round(yMarginStart * rate)
+
+    return xMargin, yMargin

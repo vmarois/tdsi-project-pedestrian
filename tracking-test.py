@@ -15,9 +15,6 @@ hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 # initialize the SURF object & set Hessian Threshold to 400
 surf = cv2.xfeatures2d.SURF_create(400)
 
-# initialize the BruteForceMatcher object with default params
-bf = cv2.BFMatcher(normType=cv2.NORM_L2, crossCheck=True)
-
 # boolean used to indicate if we have already detected a pedestrian or not. If yes, we skip the function call
 # to hogSVMDetection
 PED_ALREADY_DET = False
@@ -25,6 +22,10 @@ PED_ALREADY_DET = False
 # int used to know if the current frame is the reference frame for the BruteForce Matching or not. If yes, this means
 # we cannot do a matching yet, and we just have to store the rectangle, descriptors
 DETECTION_COUNT = 0
+
+# initial margin values
+xMarginStart = 35
+yMarginStart = 50
 
 # empty list to store the previous keypoints
 previousKeypoints = []
@@ -39,6 +40,8 @@ trackingImages = [name for name in os.listdir(os.path.join(os.curdir, "data/")) 
 # We sort this list to get the names in the correct order
 trackingImages.sort(key=lambda s: s[10:13])
 
+# total number of frames
+NbTotImages = len(trackingImages)
 
 # loop over the image paths
 for imagePath in trackingImages:
@@ -101,7 +104,8 @@ for imagePath in trackingImages:
         previousDescriptors = currentDescriptors
         print('previousDescriptors : ', type(previousDescriptors), ' ', previousDescriptors.shape)
         # update the bounding rectangles coordinates and save them
-        xA, yA, xB, yB = updateRectangle(currentKeypoints, xMargin=30, yMargin=35)
+        xMargin, yMargin = updateMargin(xMarginStart, yMarginStart, NbTotImages, DETECTION_COUNT)
+        xA, yA, xB, yB = updateRectangle(currentKeypoints, xMargin=xMargin, yMargin=yMargin)
         rects[0] = (xA, yA, xB, yB)
 
         # draw the bounding rectangle & keypoints
@@ -110,6 +114,7 @@ for imagePath in trackingImages:
 
         PED_ALREADY_DET = True
         DETECTION_COUNT += 1
+        print('DETECTION_COUNT = ', DETECTION_COUNT)
 
     cv2.imshow("{}".format(imagePath), image)
     cv2.waitKey(1)  # display images at roughly 15 fps

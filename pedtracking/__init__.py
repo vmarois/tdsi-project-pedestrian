@@ -6,4 +6,4 @@ from . import detection
 from . import tracking
 
 from .detection import hogSVMDetection
-from .tracking import bruteForceMatching, updateRectangle
+from .tracking import bruteForceMatching, updateRectangle, updateMargin
