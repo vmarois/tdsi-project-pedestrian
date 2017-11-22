@@ -70,24 +70,26 @@ def bruteForceMatching(kp1, des1, kp2, des2):
         return [], None
 
 
-def updateRectangle(keypoints, delta=30):
+def updateRectangle(keypoints, xMargin=30, yMargin=30):
     """
     This functions updates the bounding rectangle used to track pedestrians based on the coordinates of the keypoints
     computed on a region containing the pedestrian.
     It returns the parameters of the updated bounding rectangle.
     :param keypoints: the list of keypoints computed on the region delimited by the previous rectangle.
-    :param delta: margin used to scale the rectangle on the keypoints. if 0, no margin is added. We recommend a non-null
+    :param xMargin: margin used to scale the rectangle on the x axis. if 0, no margin is added. We recommend a non-null
     margin.
+    :param yMargin: margin used to scale the rectangle on the y axis. if 0, no margin is added. We recommend a non-null
+    margin (probably higher than the xMargin)
     :return: xA, yA, xB, yB the coordinates used to draw the rectangle afterwards.
     """
     if keypoints:
         pts = [keypoint.pt for keypoint in keypoints]
 
-        xA = (round(min([coord[0] for coord in pts]) - delta) if round(min([coord[0] for coord in pts]) - delta) > 0 else 0)
-        xB = round(max([coord[0] for coord in pts]) + delta)
+        xA = (round(min([coord[0] for coord in pts]) - xMargin) if round(min([coord[0] for coord in pts]) - xMargin) > 0 else 0)
+        xB = round(max([coord[0] for coord in pts]) + xMargin)
 
-        yA = (round(min([coord[1] for coord in pts]) - delta) if round(min([coord[1] for coord in pts]) - delta) > 0 else 0)
-        yB = round(max([coord[1] for coord in pts]) + delta)
+        yA = (round(min([coord[1] for coord in pts]) - yMargin) if round(min([coord[1] for coord in pts]) - yMargin) > 0 else 0)
+        yB = round(max([coord[1] for coord in pts]) + yMargin)
 
         return xA, yA, xB, yB
     else:

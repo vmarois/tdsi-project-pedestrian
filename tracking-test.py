@@ -101,7 +101,7 @@ for imagePath in trackingImages:
         previousDescriptors = currentDescriptors
         print('previousDescriptors : ', type(previousDescriptors), ' ', previousDescriptors.shape)
         # update the bounding rectangles coordinates and save them
-        xA, yA, xB, yB = updateRectangle(currentKeypoints, delta=30)
+        xA, yA, xB, yB = updateRectangle(currentKeypoints, xMargin=30, yMargin=35)
         rects[0] = (xA, yA, xB, yB)
 
         # draw the bounding rectangle & keypoints
