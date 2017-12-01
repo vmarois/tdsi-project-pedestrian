@@ -118,3 +118,23 @@ def updateMargin(xMarginStart, yMarginStart, NbTotImg, countFromDetection):
     yMargin = round(yMarginStart * rate)
 
     return xMargin, yMargin
+
+
+def updateKeypointsCoordinates(keypoints, xA, yA):
+    """
+    This function updates the keypoints coordinates, setting the origin to (xA, yA).
+    As we compute the SIFT keypoints on the rectangle bounding the pedestrian, their coordinates have for reference
+    the rectangle and not the original image. This function fixes that, by setting their reference back to the original
+    image
+    :param keypoints: the list of keypoints to update
+    :param xA: the x-coordinate used for reference
+    :param yA: the y-coordinate used for reference
+    :return: the list of keypoints with updated coordinates.
+    """
+    for keypoint in keypoints:
+        (x, y) = keypoint.pt
+        x += xA
+        y += yA
+        keypoint.pt = (x, y)
+
+    return keypoints

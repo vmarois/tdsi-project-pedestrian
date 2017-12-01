@@ -22,3 +22,26 @@ def hogSVMDetection(hog, image):
     rects = non_max_suppression(rects, probs=None, overlapThresh=0.65)
 
     return rects
+
+
+def backgroundSubstraction(backgroundsubstractor, image, kernel):
+    """
+    This function separates the foreground from the background of the passed image using a built-in openCV function.
+    It also applies a morphologic operation (open then close) to reduce the noise.
+    :param backgroundsubstractor: the cv2.bgsegm.createBackgroundSubtractorMOG() instanciation.
+    :param image: the image to execute background separation on.
+    :param kernel: the structuring element used for morphologic filtering.
+    :return: the foreground image
+    """
+    fgmask = backgroundsubstractor.apply(image)
+
+    # filter the bushes on the mask (maybe not necessary)
+    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=2)) / 255
+    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=5))
+
+    # apply the mask on the image
+    image[:, :, 0] = image[:, :, 0] * fgmask
+    image[:, :, 1] = image[:, :, 1] * fgmask
+    image[:, :, 2] = image[:, :, 2] * fgmask
+
+    return image

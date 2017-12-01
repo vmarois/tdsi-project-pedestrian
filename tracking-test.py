@@ -76,11 +76,7 @@ for imagePath in trackingImages:
         if DETECTION_COUNT == 0:
             print('This is the reference frame. Not performing Brute Force Matching.')
             # update the keypoints coordinates
-            for keypoint in currentKeypoints:
-                (x, y) = keypoint.pt
-                x += xA
-                y += yA
-                keypoint.pt = (x, y)
+            currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
             print('Keypoints coordinates updated')
 
         else:
@@ -90,11 +86,7 @@ for imagePath in trackingImages:
                                                                       currentKeypoints,
                                                                       currentDescriptors)
             # update the keypoints coordinates
-            for keypoint in currentKeypoints:
-                (x, y) = keypoint.pt
-                x += xA
-                y += yA
-                keypoint.pt = (x, y)
+            currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
             print('Keypoints coordinates updated.')
 
         # save the current keypoints as the previous ones

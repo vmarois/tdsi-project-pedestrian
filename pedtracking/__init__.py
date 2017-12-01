@@ -5,5 +5,5 @@
 from . import detection
 from . import tracking
 
-from .detection import hogSVMDetection
-from .tracking import bruteForceMatching, updateRectangle, updateMargin
+from .detection import hogSVMDetection, backgroundSubstraction
+from .tracking import bruteForceMatching, updateRectangle, updateMargin, updateKeypointsCoordinates
