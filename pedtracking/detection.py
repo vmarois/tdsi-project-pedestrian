@@ -35,10 +35,6 @@ def backgroundSubstraction(backgroundsubstractor, image, kernel):
     """
     fgmask = backgroundsubstractor.apply(image)
 
-    # filter the bushes on the mask (maybe not necessary)
-    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=2)) / 255
-    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=5))
-
     # apply the mask on the image
     image[:, :, 0] = image[:, :, 0] * fgmask
     image[:, :, 1] = image[:, :, 1] * fgmask

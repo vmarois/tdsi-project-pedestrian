@@ -112,10 +112,15 @@ def updateMargin(xMarginStart, yMarginStart, NbTotImg, countFromDetection):
     :return: xMargin, yMargin updated.
     """
 
+    xMargin = xMarginStart
+    yMargin = yMarginStart
+
     # define the decreasing rate
     rate = (NbTotImg - countFromDetection)/NbTotImg
-    xMargin = round(xMarginStart * rate)
-    yMargin = round(yMarginStart * rate)
+
+    if countFromDetection/NbTotImg < 0.6:
+        xMargin = round(xMarginStart * rate)
+        yMargin = round(yMarginStart * rate)
 
     return xMargin, yMargin
 
