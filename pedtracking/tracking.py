@@ -143,3 +143,31 @@ def updateKeypointsCoordinates(keypoints, xA, yA):
         keypoint.pt = (x, y)
 
     return keypoints
+
+
+def updateRectangleCenter(keypoints, xMargin=30, yMargin=30):
+    """
+    New function test to update bounding rectangle : instead of using exterior keypoints as deliminitors, compute
+    center of mass of keypoints and center bounding rectangle on it.
+    :param keypoints: the list of keypoints computed on the region delimited by the previous rectangle.
+    :param xMargin: margin used to scale the rectangle on the x axis. if 0, no margin is added. We recommend a non-null
+    margin.
+    :param yMargin: margin used to scale the rectangle on the y axis. if 0, no margin is added. We recommend a non-null
+    margin (probably higher than the xMargin)
+    :return: xA, yA, xB, yB new coordinates of bounding rectangle
+    """
+    if keypoints:
+        xcoord = [keypoint.pt[0] for keypoint in keypoints]
+        ycoord = [keypoint.pt[1] for keypoint in keypoints]
+        xCenter = int(np.mean(xcoord))
+        yCenter = int(np.mean(ycoord))
+
+        xA = xCenter - xMargin
+        xB = xCenter + xMargin
+        yA = yCenter - xMargin
+        yB = yCenter + xMargin
+        return xA, yA, xB, yB
+
+    else:
+        print('The provided keypoints list is empty. (xA, yA, xB, yB) returned as null values')
+        return 0, 0, 0, 0
