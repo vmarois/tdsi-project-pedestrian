@@ -89,7 +89,7 @@ for imagePath in trackingImages:
 
         else:
             print('We should have some reference from the previous frame. Performing BFMatching.')
-            currentKeypoints, currentDescriptors = bruteForceMatching(previousKeypoints,
+            _, _, currentKeypoints, currentDescriptors = bruteForceMatching(previousKeypoints,
                                                                       previousDescriptors,
                                                                       currentKeypoints,
                                                                       currentDescriptors)

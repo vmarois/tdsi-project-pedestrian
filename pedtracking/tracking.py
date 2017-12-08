@@ -6,18 +6,22 @@ from scipy.spatial.distance import cdist
 
 def bruteForceMatching(kp1, des1, kp2, des2):
     """
-    This function matches SURF keypoints between 2 images using the Brute Force technique. It returns the list of
-    keypoints present on the second image (i.e the next frame in a video) that have been matched with keypoints on the
-    first image (i.e the previous frame in a video). The matching is done via computing the distance (in the sense of
-    the L2-norm) between the respective descriptors of each keypoints. Then, the pairs of keypoints with minimal
-    distance is extracted (a 'good' distance is supposed to be < 0.5) in increasing distance order.
+    This function matches SURF keypoints between 2 images using the Brute Force technique.
+    It returns the list of keypoints (& their descriptors) present on the second image (i.e the next frame in a video)
+    that have been matched with keypoints on the first image (i.e the previous frame in a video).
+    It also returns the list of keypoints (& their descriptors) on the first image matched that have been matched in
+    the second image.
+    The matching is done via computing the distance (in the sense of the L2-norm) between the respective descriptors
+    of each keypoints.
+    Then, the pairs of keypoints with minimal distance is extracted (a 'good' distance is supposed to be < 0.5)
+    in increasing distance order.
     :param kp1: the list of keypoints determined by the SURF algorithm on the first image.
     :param des1: the numpy.ndarray of shape (len(kp1), 64) containing the descriptors associated with the first list of
     keypoints.
     :param kp2: the list of keypoints determined by the SURF algorithm on the second image.
-    :param des2: the numpy.ndarray of shape (len(kp1), 64) containing the descriptors associated with the second list of
+    :param des2: the numpy.ndarray of shape (len(kp2), 64) containing the descriptors associated with the second list of
     keypoints.
-    :return: the list of cv2.keypoints on the second image which have been matched with keypoints on the first image.
+    :return: The keypoints & their descriptors of both images which have been matched with a distance < 0.5
     """
 
     if (des1 is not None) & (des2 is not None):
@@ -27,7 +31,7 @@ def bruteForceMatching(kp1, des1, kp2, des2):
 
         copyDists = dists.copy()  # create a copy of the distances matrix
 
-        result = []  # empty list to store the result in the form (keypoint2Idx, keypoint2Idx, distance)
+        result = []  # empty list to store the result in the form (keypoint2Idx, keypoint1Idx, distance)
 
         for i in range(min(len(kp1), len(kp2))):
             # get the indices of the smallest value in distances, i.e the best keypoints pair
@@ -51,23 +55,29 @@ def bruteForceMatching(kp1, des1, kp2, des2):
 
         # We consider a match between 2 keypoints to be good if the distance is < 0.5. Hence, we discard those which
         # do not respect this condition
-        result = [element for element in result if element[2] < 0.9]
+        result = [element for element in result if element[2] < 0.5]
 
         # we now select the keypoints (& associated descriptors) in kp2 that were matched with a keypoint in kp1.
-        keypoints = []
-        descriptors = np.empty((len(result), 64))
+        nextkeypoints = []
+        nextdescriptors = np.empty((len(result), 64))
+
+        # We also select the matched keypoints in the previous frame (used to update the bounding rectangle
+        # via a least square method). The order of selection is important!
+        prevkeypoints = []
+        prevdescriptors = np.empty((len(result), 64))
 
         for idx, element in enumerate(result):
-            keypoints.append(kp2[element[0]])
-            descriptors[idx] = des2[element[0]]
+            nextkeypoints.append(kp2[element[0]])
+            nextdescriptors[idx] = des2[element[0]]
+            prevkeypoints.append((kp1[element[1]]))
+            prevdescriptors[idx] = des1[element[1]]
 
-        # finally, return the keypoints (& their descriptors) of kp2 that were matched with a keypoint in kp1, and
-        # respect distance < 0.5
-        return keypoints, descriptors
+        # finally, return the keypoints (& their descriptors) matched with a distance < 0.5
+        return prevkeypoints, prevdescriptors, nextkeypoints, nextdescriptors
 
     else:
         print('One or both of the descriptors array is empty. Cannot perform Brute Force Matching.')
-        return [], None
+        return [], None, [], None
 
 
 def updateRectangle(keypoints, xMargin=30, yMargin=30):
@@ -164,10 +174,66 @@ def updateRectangleCenter(keypoints, xMargin=30, yMargin=30):
 
         xA = xCenter - xMargin
         xB = xCenter + xMargin
-        yA = yCenter - xMargin
-        yB = yCenter + xMargin
+        yA = yCenter - yMargin
+        yB = yCenter + yMargin
         return xA, yA, xB, yB
 
     else:
         print('The provided keypoints list is empty. (xA, yA, xB, yB) returned as null values')
+        return 0, 0, 0, 0
+
+
+def leastSquareRegression(previousKpts, currentKpts):
+    """
+    This function uses the coordinates of the keypoints detected in the current & previous frames to compute the
+    scaling & translation parameters (along the x- & y-axis) defining the affine transformation which explains the
+    motion of the rectangle bounding the pedestrian.
+    We define this affine transformation as follow : let (x2,y2) be the coordinates of a keypoint in the current frame
+    and (x1, y1) its coordinates in the previous frame. Then:
+    x2 = tx + sx.x1
+    y2 = ty + xy.y1
+    Note : we suppose the keypoints coordinates have the same origin.
+    :param previousKpts: the list of keypoints detected in the previous frame.
+    :param currentKpts: the list of keypoints detected in the current frame.
+    :return: sx, sy, tx, ty
+    """
+    if (previousKpts is not None) & (currentKpts is not None):
+        # we're using the same notation as in the lecture
+        # Keypoint.pt = (x-coord, y-coord)
+
+        # for the x-coordinates problem
+        Xx = np.ones((len(previousKpts), 2))
+        Yx = np.zeros((len(currentKpts), 1))
+
+        # for the x-coordinates problem
+        Xy = np.ones((len(previousKpts), 2))
+        Yy = np.zeros((len(currentKpts), 1))
+
+        # we now collect the x- & y-coordinates of the current keypoints:
+        for idx, keypoint in enumerate(currentKpts):
+            Yx[idx] = keypoint.pt[0]
+            Yy[idx] = keypoint.pt[1]
+
+        # do the same for the previous keypoints:
+        for idx, keypoint in enumerate(previousKpts):
+            Xx[idx, 1] = keypoint.pt[0]
+            Xy[idx, 1] = keypoint.pt[1]
+
+        # convert the numpy.ndarrays to matrix :
+        Xx = np.matrix(Xx)
+        Xy = np.matrix(Xy)
+        Yx = np.matrix(Yx)
+        Yy = np.matrix(Yy)
+
+        # solution of the form A = [t,s]' = ((X' * X)^-1) * X' * Y
+        Ax = np.linalg.inv(Xx.T * Xx) * Xx.T * Yx
+        tx, sx = np.asscalar(Ax[0][0]), np.asscalar(Ax[1][0])
+
+        Ay = np.linalg.inv(Xy.T * Xy) * Xy.T * Yy
+        ty, sy = np.asscalar(Ay[0][0]), np.asscalar(Ay[1][0])
+
+        return sx, sy, tx, ty
+
+    else:
+        print('One or both of the keypoints lists is empty. Cannot perform least square regression.')
         return 0, 0, 0, 0
