@@ -24,7 +24,7 @@ def hogSVMDetection(hog, image):
     return rects
 
 
-def backgroundSubstraction(backgroundsubstractor, image, kernel):
+def backgroundSubstraction(backgroundsubstractor, image):
     """
     This function separates the foreground from the background of the passed image using a built-in openCV function.
     It also applies a morphologic operation (open then close) to reduce the noise.

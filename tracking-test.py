@@ -15,9 +15,6 @@ hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 # initialize background substractor object
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
 
-# elliptic kernel for morpho math
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
-
 # initialize the SURF object & set Hessian Threshold to 400
 surf = cv2.xfeatures2d.SURF_create(400)
 
@@ -59,7 +56,7 @@ for imagePath in trackingImages:
     image = cv2.imread(imagePath)
     image = imutils.resize(image, width=min(480, image.shape[1]))
     disp_image = image.copy()
-    image = backgroundSubstraction(fgbg, image, kernel)
+    image = backgroundSubstraction(fgbg, image)
 
     if not PED_ALREADY_DET:  # no pedestrian has been detected
         rects = hogSVMDetection(hog, image)
