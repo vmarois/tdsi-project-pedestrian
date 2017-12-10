@@ -28,7 +28,7 @@ def bruteForceMatching(kp1, des1, kp2, des2):
 
         dists = cdist(des2, des1, p=2)  # outputs a matrix of distances of shape (len(kp2) , len(kp1) )
         # the lower the distance between 2 keypoints, the better
-
+        print(dists)
         copyDists = dists.copy()  # create a copy of the distances matrix
 
         result = []  # empty list to store the result in the form (keypoint2Idx, keypoint1Idx, distance)
@@ -227,9 +227,11 @@ def leastSquareRegression(previousKpts, currentKpts):
 
         # solution of the form A = [t,s]' = ((X' * X)^-1) * X' * Y
         Ax = np.linalg.inv(Xx.T * Xx) * Xx.T * Yx
+        print(Ax)
         tx, sx = np.asscalar(Ax[0][0]), np.asscalar(Ax[1][0])
 
         Ay = np.linalg.inv(Xy.T * Xy) * Xy.T * Yy
+        print(Ay)
         ty, sy = np.asscalar(Ay[0][0]), np.asscalar(Ay[1][0])
 
         return sx, sy, tx, ty
@@ -237,3 +239,31 @@ def leastSquareRegression(previousKpts, currentKpts):
     else:
         print('One or both of the keypoints lists is empty. Cannot perform least square regression.')
         return 0, 0, 0, 0
+
+
+def updateRectangleLeastSquare(rectCoord, scaling, translation):
+    """
+    Updates the bounding rectangle based on the affine transformation found when performing least square regression
+    on the keypoints coordinates.
+    :param rectCoord: (xA, yA, xB, yB) the current keypoints coordinates
+    :param scaling: (sx, sy) the scaling parameters along x- & y-axis
+    :param translation: (tx, ty) the translation parameters along x- & y-axis
+    :return: xA, yA, xB, yB updated.
+    """
+
+    # get current rectangle coordinates
+    xA, yA, xB, yB = rectCoord
+
+    # get scaling parameters
+    sx, sy = scaling
+
+    # get translation parameters
+    tx, ty = translation
+
+    xA = sx * xA + tx
+    xB = sx * xB + tx
+
+    yA = sy * yA + ty
+    yB = sy * yB + ty
+
+    return xA, yA, xB, yB
