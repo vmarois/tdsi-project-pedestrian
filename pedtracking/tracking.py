@@ -1,8 +1,9 @@
 # this file is part of tdsi-project-pedestrian
 
 import numpy as np
+import math
 from scipy.spatial.distance import cdist
-
+import cv2
 
 def bruteForceMatching(kp1, des1, kp2, des2):
     """
@@ -28,7 +29,6 @@ def bruteForceMatching(kp1, des1, kp2, des2):
 
         dists = cdist(des2, des1, p=2)  # outputs a matrix of distances of shape (len(kp2) , len(kp1) )
         # the lower the distance between 2 keypoints, the better
-        print(dists)
         copyDists = dists.copy()  # create a copy of the distances matrix
 
         result = []  # empty list to store the result in the form (keypoint2Idx, keypoint1Idx, distance)
@@ -267,3 +267,103 @@ def updateRectangleLeastSquare(rectCoord, scaling, translation):
     yB = sy * yB + ty
 
     return xA, yA, xB, yB
+
+
+def leastSquareRegression2D(previousKpts, currentKpts):
+    """
+    This function uses the coordinates of the keypoints detected in the current & previous frames to compute the
+    rotation, scaling & translation parameters (along the x- & y-axis) defining the affine transformation which explains
+    the motion of the rectangle bounding the pedestrian.
+    We are using T.Grenier's code as the base theory for the transformation.
+    Note : we suppose the keypoints coordinates have the same origin.
+    :param previousKpts: the list of keypoints detected in the previous frame.
+    :param currentKpts: the list of keypoints detected in the current frame.
+    :return: rotation_angle, scaling, tx, ty
+    """
+    if (previousKpts is not None) & (currentKpts is not None):
+        # build A matrix of shape [2 * Nb of keypoints, 4]
+        A = np.ndarray(((2 * len(previousKpts), 4)))
+
+        for idx, keypoint in enumerate(previousKpts):
+            # Keypoint.pt = (x-coord, y-coord)
+            A[2 * idx, :] = [keypoint.pt[0], -keypoint.pt[1], 1, 0]
+            A[2 * idx + 1, :] = [keypoint.pt[1], keypoint.pt[0], 0, 1]
+
+        # build b matrix of shape [2 * Nb of keypoints, 1]
+        b = np.ndarray((2 * len(previousKpts), 1))
+
+        for idx, keypoint in enumerate(currentKpts):
+            b[2 * idx, :] = keypoint.pt[0]
+            b[2 * idx + 1, :] = keypoint.pt[1]
+
+        # convert the numpy.ndarrays to matrix :
+        A = np.matrix(A)
+        b = np.matrix(b)
+
+        # solution of the form x = [x1, x2, x3, x4]' = ((A' * A)^-1) * A' * b
+        x = np.linalg.inv(A.T * A) * A.T * b
+
+        theta = math.atan2(x[1, 0], x[0, 0])  # outputs angle in [-pi, pi]
+        alpha = math.sqrt(x[0, 0] ** 2 + x[1, 0] ** 2)
+        bx = x[2, 0]
+        by = x[3, 0]
+
+
+        return theta, alpha, bx, by
+
+    else:
+        print('One or both of the keypoints lists is empty. Cannot perform least square regression.')
+        return 0, 0, 0, 0
+
+
+def updateRectangleLeastSquare2D(rectCoord, theta, alpha, tx, ty):
+    """
+    Updates the bounding rectangle based on the affine transformation found when performing least square regression
+    on the keypoints coordinates.
+    :param rectCoord: (xA, yA, xB, yB) the current keypoints coordinates
+    :param theta: the rotation parameter
+    :param alpha: the scaling parameter along both axis
+    :param tx: the translation parameter along x-axis
+    :param ty: the translation parameter along y-axis
+    :return: xA, yA, xB, yB updated.
+    """
+
+    # get current rectangle coordinates
+    xA, yA, xB, yB = rectCoord
+
+    # define rotation matrix from the theta angle
+    rotmatrix = np.asmatrix(np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]))
+    newCoordA = np.asmatrix(np.array([[xA], [yA]]))
+    newCoordB = np.asmatrix(np.array([[xB], [yB]]))
+
+    #newCoordA = alpha * rotmatrix * newCoordA + np.asmatrix(np.array([[tx], [ty]]))
+    #newCoordB = alpha * rotmatrix * newCoordB + np.asmatrix(np.array([[tx], [ty]]))
+
+    # without rotation
+    newCoordA = alpha * newCoordA + np.asmatrix(np.array([[tx], [ty]]))
+    newCoordB = alpha * newCoordB + np.asmatrix(np.array([[tx], [ty]]))
+
+    return newCoordA[0, 0], newCoordA[1, 0], newCoordB[0, 0], newCoordB[1, 0]
+
+
+def homographyMatrix(previousKpts, currentKpts):
+    src_pts = np.float32([kp.pt for kp in previousKpts]).reshape(-1, 1, 2)
+    dst_pts = np.float32([kp.pt for kp in currentKpts]).reshape(-1, 1, 2)
+
+    M, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 3.0)
+    M = np.asmatrix(M)
+    print('Homography matrix M : \n', M)
+    return M
+
+
+def updateRectangleHomography(rectCoord, M):
+    # get current rectangle coordinates
+    xA, yA, xB, yB = rectCoord
+
+    newCoordA = np.asmatrix(np.array([[xA], [yA], [1]]))
+    newCoordB = np.asmatrix(np.array([[xB], [yB], [1]]))
+
+    newCoordA = M * newCoordA
+    newCoordB = M * newCoordB
+
+    return (newCoordA[0,0]/newCoordA[2,0]), (newCoordA[1,0]/newCoordA[2,0]), (newCoordB[0,0]/newCoordB[2,0]), (newCoordB[1,0]/newCoordB[2,0])
