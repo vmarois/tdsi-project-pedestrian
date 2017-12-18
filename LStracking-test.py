@@ -16,7 +16,7 @@ hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
 
 # initialize the SURF object & set Hessian Threshold to 400
-surf = cv2.xfeatures2d.SURF_create(100)
+surf = cv2.xfeatures2d.SURF_create(400)
 
 # boolean used to indicate if we have already detected a pedestrian or not. If yes, we skip the function call
 # to hogSVMDetection
@@ -77,11 +77,17 @@ for imagePath in trackingImages:
         print('Number of current keypoints found: ', len(currentKeypoints))
         print('Number of associated descriptors : ', currentDescriptors.shape)
 
+        currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
+        print('Keypoints coordinates updated')
+
+        allCurrentKeypoints = currentKeypoints
+        allCurrentDescriptors = currentDescriptors
+
         if DETECTION_COUNT == 0:
             print('This is the reference frame. Not performing Brute Force Matching & LeastSquare.')
             # update the keypoints coordinates
-            currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
-            print('Keypoints coordinates updated')
+            #currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
+            #print('Keypoints coordinates updated')
 
         else:
             print('We should have some reference from the previous frame. Performing BFMatching & LeastSquare.')
@@ -91,16 +97,22 @@ for imagePath in trackingImages:
             print('Number of matched current Keypoints : ', len(currentKeypoints))
 
             # update the keypoints coordinates
-            currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
-            print('Keypoints coordinates updated')
+            #currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
+            #print('Keypoints coordinates updated')
 
             # we now should perform the least square regression
             #sx, sy, tx, ty = leastSquareRegression(previousKeypoints, currentKeypoints)
-            theta, alpha, tx, ty = leastSquareRegression2D(previousKeypoints, currentKeypoints)
+            #theta, alpha, tx, ty = leastSquareRegression2D(previousKeypoints, currentKeypoints)
             #M = homographyMatrix(previousKeypoints, currentKeypoints)
+            tx, ty = findTranslationTransf(previousKeypoints, currentKeypoints)
+            theta = 0
+            alpha = 1
+            #print('tx, ty =', tx, ty)
             #print('sx, sy, tx, ty = ', sx, sy, tx, ty)
-            #print('theta, alpha, tx, ty = ', theta, alpha, tx, ty)
+            print('theta, alpha, tx, ty = ', theta, alpha, tx, ty)
             #print('homography matrix M = ', M)
+            #print(previousKeypoints[0].pt, currentKeypoints[0].pt)
+
 
             # update the bounding rectangle coordinates
             #xA, yA, xB, yB = updateRectangleLeastSquare(rectCoord=(xA,yA,xB,yB), scaling=(sx,sy), translation=(tx,ty))
@@ -116,11 +128,11 @@ for imagePath in trackingImages:
         # save the new bounding rectangle coordinates
         rects[0] = (xA, yA, xB, yB)
 
-        # save the current keypoints as the previous ones
-        previousKeypoints = currentKeypoints
+        # save all keypoints detected in this frame as the previous ones
+        previousKeypoints = allCurrentKeypoints
 
-        # save the current descriptors as the previous ones
-        previousDescriptors = currentDescriptors
+        # save associated descriptors
+        previousDescriptors = allCurrentDescriptors
         print('previousDescriptors : ', previousDescriptors.shape)
 
         # draw the bounding rectangle & keypoints
@@ -131,7 +143,7 @@ for imagePath in trackingImages:
         DETECTION_COUNT += 1
         print('DETECTION_COUNT = ', DETECTION_COUNT)
 
-    cv2.imshow("{}".format(imagePath), disp_image)
-    cv2.waitKey(1)  # display images at roughly 15 fps
+    cv2.imshow("Tracking", disp_image)
+    cv2.waitKey(300)  # display images at roughly 15 fps
     cv2.destroyAllWindows()
     print('\n')
