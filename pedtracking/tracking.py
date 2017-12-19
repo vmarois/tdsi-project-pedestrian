@@ -404,10 +404,10 @@ def findTranslationTransf(previousKpts, currentKpts):
     :param currentKpts: the list of keypoints detected in the current frame.
     :return: amount of translation along the x and y-axis
     """
-    
+
     tx, ty = 0,0
     for i, kp in enumerate(previousKpts):
         tx += currentKpts[i].pt[0] - previousKpts[i].pt[0]
         ty += currentKpts[i].pt[1] - previousKpts[i].pt[1]
 
-    return tx/(len(previousKpts)-j), ty/(len(previousKpts)-j)
+    return tx/len(previousKpts), ty/len(previousKpts)
