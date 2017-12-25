@@ -25,6 +25,9 @@ def bruteForceMatching(kp1, des1, kp2, des2):
     :return: The keypoints & their descriptors of both images which have been matched with a distance < 0.5
     """
 
+    xA = 0
+    yA = 0
+
     if (des1 is not None) & (des2 is not None):
 
         dists = cdist(des2, des1, metric='minkowski', p=2)  # outputs a matrix of distances of shape (len(kp2) , len(kp1) )
@@ -72,7 +75,18 @@ def bruteForceMatching(kp1, des1, kp2, des2):
             prevkeypoints.append((kp1[element[1]]))
             prevdescriptors[idx] = des1[element[1]]
 
-        # finally, return the keypoints (& their descriptors) matched with a distance < 0.5
+
+        # Delete matched keypoints separated by more than 10 pixels
+        i = 0
+        while i < len(prevkeypoints):
+            if( np.sqrt(np.square(nextkeypoints[i].pt[0] - prevkeypoints[i].pt[0]) + np.square(nextkeypoints[i].pt[1] - prevkeypoints[i].pt[1])) > 10):
+                prevkeypoints = np.delete(prevkeypoints, i)
+                prevdescriptors = np.delete(prevdescriptors, i, axis=0)
+                nextkeypoints = np.delete(nextkeypoints, i)
+                nextdescriptors = np.delete(nextdescriptors, i, axis=0)
+            else:
+                i += 1
+
         return prevkeypoints, prevdescriptors, nextkeypoints, nextdescriptors
 
     else:
@@ -151,7 +165,6 @@ def updateKeypointsCoordinates(keypoints, xA, yA):
         x += xA
         y += yA
         keypoint.pt = (x, y)
-
     return keypoints
 
 
@@ -176,6 +189,8 @@ def updateRectangleCenter(keypoints, xMargin=30, yMargin=30):
         xB = xCenter + xMargin
         yA = yCenter - yMargin
         yB = yCenter + yMargin
+
+
         return xA, yA, xB, yB
 
     else:
@@ -266,6 +281,11 @@ def updateRectangleLeastSquare(rectCoord, scaling, translation):
     yA = sy * yA + ty
     yB = sy * yB + ty
 
+    if xA < 0:
+        xA = 0
+    if yA < 0:
+        yA = 0
+
     return xA, yA, xB, yB
 
 
@@ -280,6 +300,10 @@ def leastSquareRegression2D(previousKpts, currentKpts):
     :param currentKpts: the list of keypoints detected in the current frame.
     :return: rotation_angle, scaling, tx, ty
     """
+
+    previousKpts = previousKpts[:5]
+    currentKpts = currentKpts[:5]
+
     if (previousKpts is not None) & (currentKpts is not None):
         # build A matrix of shape [2 * Nb of keypoints, 4]
         A = np.ndarray(((2 * len(previousKpts), 4)))
@@ -343,6 +367,11 @@ def updateRectangleLeastSquare2D(rectCoord, theta, alpha, tx, ty):
     newCoordA = alpha * newCoordA + np.asmatrix(np.array([[tx], [ty]]))
     newCoordB = alpha * newCoordB + np.asmatrix(np.array([[tx], [ty]]))
 
+    if newCoordA[0, 0] < 0:
+        newCoordA[0, 0] = 0
+    if newCoordA[1, 0] < 0:
+        newCoordA[1, 0] = 0
+
     return newCoordA[0, 0], newCoordA[1, 0], newCoordB[0, 0], newCoordB[1, 0]
 
 
@@ -367,3 +396,18 @@ def updateRectangleHomography(rectCoord, M):
     newCoordB = M * newCoordB
 
     return (newCoordA[0,0]/newCoordA[2,0]), (newCoordA[1,0]/newCoordA[2,0]), (newCoordB[0,0]/newCoordB[2,0]), (newCoordB[1,0]/newCoordB[2,0])
+
+def findTranslationTransf(previousKpts, currentKpts):
+    """
+    This function finds the translation between the previous and current keypoints
+    :param previousKpts: the list of keypoints detected in the previous frame.
+    :param currentKpts: the list of keypoints detected in the current frame.
+    :return: amount of translation along the x and y-axis
+    """
+
+    tx, ty = 0,0
+    for i, kp in enumerate(previousKpts):
+        tx += currentKpts[i].pt[0] - previousKpts[i].pt[0]
+        ty += currentKpts[i].pt[1] - previousKpts[i].pt[1]
+
+    return tx/len(previousKpts), ty/len(previousKpts)

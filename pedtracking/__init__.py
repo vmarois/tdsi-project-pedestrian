@@ -8,4 +8,4 @@ from . import tracking
 from .detection import hogSVMDetection, backgroundSubstraction
 from .tracking import bruteForceMatching, updateRectangle, updateMargin, updateKeypointsCoordinates, \
     updateRectangleCenter, leastSquareRegression, updateRectangleLeastSquare, leastSquareRegression2D, \
-    updateRectangleLeastSquare2D, homographyMatrix, updateRectangleHomography
+    updateRectangleLeastSquare2D, homographyMatrix, updateRectangleHomography, findTranslationTransf
