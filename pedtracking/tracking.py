@@ -27,7 +27,7 @@ def bruteForceMatching(kp1, des1, kp2, des2):
 
     if (des1 is not None) & (des2 is not None):
 
-        dists = cdist(des2, des1, p=2)  # outputs a matrix of distances of shape (len(kp2) , len(kp1) )
+        dists = cdist(des2, des1, metric='minkowski', p=2)  # outputs a matrix of distances of shape (len(kp2) , len(kp1) )
         # the lower the distance between 2 keypoints, the better
         copyDists = dists.copy()  # create a copy of the distances matrix
 
