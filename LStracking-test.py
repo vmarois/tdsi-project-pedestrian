@@ -42,7 +42,6 @@ data_path = 'data/'
 trackingImages = [name for name in os.listdir(os.path.join(os.curdir, "data/")) if not name.startswith('.')]
 # We sort this list to get the names in the correct order
 trackingImages.sort(key=lambda s: s[10:13])
-#trackingImages = trackingImages[60:]
 # total number of frames
 NbTotImages = len(trackingImages)
 
@@ -77,17 +76,17 @@ for imagePath in trackingImages:
         print('Number of current keypoints found: ', len(currentKeypoints))
         print('Number of associated descriptors : ', currentDescriptors.shape)
 
+        # update keypoints coordinates : should do it right after SURF detection to avoid issues when
+        # performing brute force matching
         currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
         print('Keypoints coordinates updated')
 
+        # save all current keypoints & descriptors
         allCurrentKeypoints = currentKeypoints
         allCurrentDescriptors = currentDescriptors
 
         if DETECTION_COUNT == 0:
             print('This is the reference frame. Not performing Brute Force Matching & LeastSquare.')
-            # update the keypoints coordinates
-            #currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
-            #print('Keypoints coordinates updated')
 
         else:
             print('We should have some reference from the previous frame. Performing BFMatching & LeastSquare.')
@@ -96,34 +95,20 @@ for imagePath in trackingImages:
                 previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors)
             print('Number of matched current Keypoints : ', len(currentKeypoints))
 
-            # update the keypoints coordinates
-            #currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
-            #print('Keypoints coordinates updated')
-
-            # we now should perform the least square regression
-            #sx, sy, tx, ty = leastSquareRegression(previousKeypoints, currentKeypoints)
+            ########## SELECT THE FUNCTION TO USE FOR LEAST SQUARE REGRESSION
             #theta, alpha, tx, ty = leastSquareRegression2D(previousKeypoints, currentKeypoints)
-            #M = homographyMatrix(previousKeypoints, currentKeypoints)
             tx, ty = findTranslationTransf(previousKeypoints, currentKeypoints)
             theta = 0
             alpha = 1
-            #print('tx, ty =', tx, ty)
-            #print('sx, sy, tx, ty = ', sx, sy, tx, ty)
             print('theta, alpha, tx, ty = ', theta, alpha, tx, ty)
-            #print('homography matrix M = ', M)
-            #print(previousKeypoints[0].pt, currentKeypoints[0].pt)
+            #################################################################
 
-
-            # update the bounding rectangle coordinates
-            #xA, yA, xB, yB = updateRectangleLeastSquare(rectCoord=(xA,yA,xB,yB), scaling=(sx,sy), translation=(tx,ty))
+            ########## SELECT THE CORRESPONDING FUNCTION TO UPDATE BOUNDING RECTANGLE COORDINATES
             xA, yA, xB, yB = updateRectangleLeastSquare2D((xA,yA,xB,yB), theta, alpha, tx, ty)
-            #xA, yA, xB, yB = updateRectangleHomography((xA, yA, xB, yB), M)
+            #################################################################
 
             # cast to int
-            xA = int(xA)
-            xB = int(xB)
-            yA = int(yA)
-            yB = int(yB)
+            xA, yA, xB, yB = [int(x) for x in [xA, yA, xB, yB]]
 
         # save the new bounding rectangle coordinates
         rects[0] = (xA, yA, xB, yB)
@@ -144,6 +129,6 @@ for imagePath in trackingImages:
         print('DETECTION_COUNT = ', DETECTION_COUNT)
 
     cv2.imshow("Tracking", disp_image)
-    cv2.waitKey(300)  # display images at roughly 15 fps
+    cv2.waitKey(1)  # display images at roughly 15 fps
     cv2.destroyAllWindows()
     print('\n')

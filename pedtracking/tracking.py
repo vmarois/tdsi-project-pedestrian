@@ -25,12 +25,9 @@ def bruteForceMatching(kp1, des1, kp2, des2):
     :return: The keypoints & their descriptors of both images which have been matched with a distance < 0.5
     """
 
-    xA = 0
-    yA = 0
-
     if (des1 is not None) & (des2 is not None):
 
-        dists = cdist(des2, des1, metric='minkowski', p=2)  # outputs a matrix of distances of shape (len(kp2) , len(kp1) )
+        dists = cdist(des2, des1, metric='minkowski', p=2)  # matrix of distances of shape (len(kp2) , len(kp1) )
         # the lower the distance between 2 keypoints, the better
         copyDists = dists.copy()  # create a copy of the distances matrix
 
@@ -45,7 +42,6 @@ def bruteForceMatching(kp1, des1, kp2, des2):
 
             # delete the row & column containing this minimum, as the pair of keypoints have to be independent,
             # i.e a keypoint in the first list cannot be matched to 2 or more keypoints in list 2 & vice-versa
-
             dists = np.delete(np.delete(dists, tempIdx[0], axis=0), tempIdx[1], axis=1)
 
             # get the 'original' indices of the minimum value (using an untouched copy of distances, since the indices
@@ -56,8 +52,8 @@ def bruteForceMatching(kp1, des1, kp2, des2):
             # append the real indices & the distance value to result
             result.append((trueIdx[0], trueIdx[1], value))
 
-        # We consider a match between 2 keypoints to be good if the distance is < 0.5. Hence, we discard those which
-        # do not respect this condition
+        # We consider a match between 2 keypoints to be good if the distance between the descriptors is < 0.5. Hence, we
+        # discard those which do not respect this condition
         result = [element for element in result if element[2] < 0.5]
 
         # we now select the keypoints (& associated descriptors) in kp2 that were matched with a keypoint in kp1.
@@ -76,13 +72,15 @@ def bruteForceMatching(kp1, des1, kp2, des2):
             prevdescriptors[idx] = des1[element[1]]
 
 
-        # Delete matched keypoints separated by more than 10 pixels
+        # Take into account the spatial distance between the keypoints : if too large (i.e > 10), the keypoints are not
+        # considered a good match and are then discarded.
         i = 0
-        while i < len(prevkeypoints):
-            if( np.sqrt(np.square(nextkeypoints[i].pt[0] - prevkeypoints[i].pt[0]) + np.square(nextkeypoints[i].pt[1] - prevkeypoints[i].pt[1])) > 10):
-                prevkeypoints = np.delete(prevkeypoints, i)
+        while i < len(nextkeypoints):  # for loop doesn't work as len(nextkeypoints) change when removing items
+            if(np.sqrt((nextkeypoints[i].pt[0] - prevkeypoints[i].pt[0]) ** 2 +
+                        (nextkeypoints[i].pt[1] - prevkeypoints[i].pt[1]) ** 2) > 10):
+                prevkeypoints.pop(i)
                 prevdescriptors = np.delete(prevdescriptors, i, axis=0)
-                nextkeypoints = np.delete(nextkeypoints, i)
+                nextkeypoints.pop(i)
                 nextdescriptors = np.delete(nextdescriptors, i, axis=0)
             else:
                 i += 1
@@ -374,28 +372,6 @@ def updateRectangleLeastSquare2D(rectCoord, theta, alpha, tx, ty):
 
     return newCoordA[0, 0], newCoordA[1, 0], newCoordB[0, 0], newCoordB[1, 0]
 
-
-def homographyMatrix(previousKpts, currentKpts):
-    src_pts = np.float32([kp.pt for kp in previousKpts]).reshape(-1, 1, 2)
-    dst_pts = np.float32([kp.pt for kp in currentKpts]).reshape(-1, 1, 2)
-
-    M, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 3.0)
-    M = np.asmatrix(M)
-    print('Homography matrix M : \n', M)
-    return M
-
-
-def updateRectangleHomography(rectCoord, M):
-    # get current rectangle coordinates
-    xA, yA, xB, yB = rectCoord
-
-    newCoordA = np.asmatrix(np.array([[xA], [yA], [1]]))
-    newCoordB = np.asmatrix(np.array([[xB], [yB], [1]]))
-
-    newCoordA = M * newCoordA
-    newCoordB = M * newCoordB
-
-    return (newCoordA[0,0]/newCoordA[2,0]), (newCoordA[1,0]/newCoordA[2,0]), (newCoordB[0,0]/newCoordB[2,0]), (newCoordB[1,0]/newCoordB[2,0])
 
 def findTranslationTransf(previousKpts, currentKpts):
     """
