@@ -4,8 +4,12 @@
 
 from . import detection
 from . import tracking
+from . import least_square_tracking
 
 from .detection import hogSVMDetection, backgroundSubstraction
+
 from .tracking import bruteForceMatching, updateRectangle, updateMargin, updateKeypointsCoordinates, \
-    updateRectangleCenter, leastSquareRegression, updateRectangleLeastSquare, leastSquareRegression2D, \
-    updateRectangleLeastSquare2D, findTranslationTransf
+    updateRectangleCenter, findTranslationTransf
+
+from .least_square_tracking import findSeparatedAffTrans, updateRectangleSeparatedAffTrans, findReducedAffTrans, \
+    updateRectangleReducedAffTrans, findGeneralAffTrans, updateRectangleGeneralAffTrans

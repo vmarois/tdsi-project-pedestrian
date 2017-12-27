@@ -95,17 +95,27 @@ for imagePath in trackingImages:
                 previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors)
             print('Number of matched current Keypoints : ', len(currentKeypoints))
 
-            ########## SELECT THE FUNCTION TO USE FOR LEAST SQUARE REGRESSION
-            #theta, alpha, tx, ty = leastSquareRegression2D(previousKeypoints, currentKeypoints)
-            tx, ty = findTranslationTransf(previousKeypoints, currentKeypoints)
-            theta = 0
-            alpha = 1
+            ########## SELECT THE FUNCTION TO FIND AN AFFINE TRANSFORM USING THE KEYPOINTS
+            # 'reduced' affine transform
+            theta, alpha, tx, ty = findReducedAffTrans(previousKeypoints, currentKeypoints)
+
+            # only a translation motion
+            #tx, ty = findTranslationTransf(previousKeypoints, currentKeypoints)
+            #theta = 0
+            #alpha = 1
             print('theta, alpha, tx, ty = ', theta, alpha, tx, ty)
+
+            # 'general' affine transform
+            #affTransMatrix = findGeneralAffTrans(previousKeypoints, currentKeypoints)
             #################################################################
 
             ########## SELECT THE CORRESPONDING FUNCTION TO UPDATE BOUNDING RECTANGLE COORDINATES
-            xA, yA, xB, yB = updateRectangleLeastSquare2D((xA,yA,xB,yB), theta, alpha, tx, ty)
-            #################################################################
+            # for 'reduced' affine transform & translation
+            xA, yA, xB, yB = updateRectangleReducedAffTrans((xA,yA,xB,yB), theta, alpha, tx, ty)
+
+            # for 'general' affine transform
+            #xA, yA, xB, yB = updateRectangleGeneralAffTrans((xA, yA, xB, yB), affTransMatrix)
+            ##################################################################
 
             # cast to int
             xA, yA, xB, yB = [int(x) for x in [xA, yA, xB, yB]]
@@ -129,6 +139,6 @@ for imagePath in trackingImages:
         print('DETECTION_COUNT = ', DETECTION_COUNT)
 
     cv2.imshow(imagePath, disp_image)
-    cv2.waitKey(300)  # display images at roughly 15 fps
+    cv2.waitKey(100)  # display images at roughly 15 fps
     cv2.destroyAllWindows()
     print('\n')
