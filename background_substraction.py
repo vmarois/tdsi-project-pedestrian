@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 import os
 
 
@@ -8,7 +7,6 @@ fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
 
 # elliptic kernel for morpho math
 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
-
 
 data_path = 'data/'
 # first, get the list of the images located in the data_path folder. These images names (e.g. 'tracking_0001.jpeg') will

@@ -78,31 +78,34 @@ for imagePath in trackingImages:
         print('Number of current keypoints found: ', len(currentKeypoints))
         print('Number of associated descriptors : ', currentDescriptors.shape)
 
+        # update keypoints coordinates : should do it right after SURF detection to avoid issues when
+        # performing brute force matching
+        currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
+        print('Keypoints coordinates updated')
+
+        # save all current keypoints & descriptors
+        allCurrentKeypoints = currentKeypoints
+        allCurrentDescriptors = currentDescriptors
+
         if DETECTION_COUNT == 0:
             print('This is the reference frame. Not performing Brute Force Matching.')
-            # update the keypoints coordinates
-            currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
-            print('Keypoints coordinates updated')
 
         else:
             print('We should have some reference from the previous frame. Performing BFMatching.')
-            _, _, currentKeypoints, currentDescriptors = bruteForceMatching(previousKeypoints,
-                                                                      previousDescriptors,
-                                                                      currentKeypoints,
-                                                                      currentDescriptors)
-            # update the keypoints coordinates
-            currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
-            print('Keypoints coordinates updated.')
+            previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors = bruteForceMatching(
+                previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors)
+            print('Number of matched current Keypoints : ', len(currentKeypoints))
 
-        # save the current keypoints as the previous ones
-        previousKeypoints = currentKeypoints
+            # update the bounding rectangles coordinates and save them
+            xMargin, yMargin = updateMargin(xMarginStart, yMarginStart, NbTotImages, DETECTION_COUNT)
+            xA, yA, xB, yB = updateRectangleCenter(currentKeypoints, xMargin=xMargin, yMargin=yMargin)
 
-        # save the current descriptors as the previous ones
-        previousDescriptors = currentDescriptors
-        print('previousDescriptors : ', type(previousDescriptors), ' ', previousDescriptors.shape)
-        # update the bounding rectangles coordinates and save them
-        #xMargin, yMargin = updateMargin(xMarginStart, yMarginStart, NbTotImages, DETECTION_COUNT)
-        xA, yA, xB, yB = updateRectangleCenter(currentKeypoints, xMargin=xMarginStart, yMargin=yMarginStart)
+        # save all keypoints detected in this frame as the previous ones
+        previousKeypoints = allCurrentKeypoints
+
+        # save associated descriptors
+        previousDescriptors = allCurrentDescriptors
+
         rects[0] = (xA, yA, xB, yB)
 
         # draw the bounding rectangle & keypoints
@@ -114,6 +117,6 @@ for imagePath in trackingImages:
         print('DETECTION_COUNT = ', DETECTION_COUNT)
 
     cv2.imshow("{}".format(imagePath), disp_image)
-    cv2.waitKey(1)  # display images at roughly 15 fps
+    cv2.waitKey(1)
     cv2.destroyAllWindows()
     print('\n')
