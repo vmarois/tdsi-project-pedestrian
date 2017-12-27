@@ -26,10 +26,6 @@ PED_ALREADY_DET = False
 # we cannot do a matching yet, and we just have to store the rectangle, keypoints & descriptors
 DETECTION_COUNT = 0
 
-# initial margin values
-xMarginStart = 35
-yMarginStart = 50
-
 # empty list to store the previous keypoints
 previousKeypoints = []
 
@@ -139,6 +135,6 @@ for imagePath in trackingImages:
         print('DETECTION_COUNT = ', DETECTION_COUNT)
 
     cv2.imshow(imagePath, disp_image)
-    cv2.waitKey(100)  # display images at roughly 15 fps
+    cv2.waitKey(100)
     cv2.destroyAllWindows()
     print('\n')
