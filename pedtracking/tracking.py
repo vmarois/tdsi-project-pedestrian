@@ -210,4 +210,8 @@ def findTranslationTransf(previousKpts, currentKpts):
         tx += currentKpts[i].pt[0] - previousKpts[i].pt[0]
         ty += currentKpts[i].pt[1] - previousKpts[i].pt[1]
 
+    # Biais correction
+    tx += 5 
+    ty += 5 
+
     return tx/len(previousKpts), ty/len(previousKpts)

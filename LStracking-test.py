@@ -26,6 +26,12 @@ PED_ALREADY_DET = False
 # we cannot do a matching yet, and we just have to store the rectangle, keypoints & descriptors
 DETECTION_COUNT = 0
 
+# int used to perform HOG + SVM detection every 10 frames
+SVMDETECT = 0
+
+# empty list to store rectangle coordinates
+rects = []
+
 # empty list to store the previous keypoints
 previousKeypoints = []
 
@@ -54,7 +60,13 @@ for imagePath in trackingImages:
     image = backgroundSubstraction(fgbg, image)
 
     if not PED_ALREADY_DET:  # no pedestrian has been detected
-        rects = hogSVMDetection(hog, image)
+	
+	if not SVMDETECT == 10:
+	    SVMDETECT += 1
+	else:
+	    print('Performing HOG + SVM pedestrian detection')
+	    rects = hogSVMDetection(hog, image)
+	    SVMDETECT = 0
 
     if len(rects) > 0:  # at least one pedestrian has been detected
         print('Pedestrian detected')
