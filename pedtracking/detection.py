@@ -30,10 +30,19 @@ def backgroundSubstraction(backgroundsubstractor, image):
     It also applies a morphologic operation (open then close) to reduce the noise.
     :param backgroundsubstractor: the cv2.bgsegm.createBackgroundSubtractorMOG() instanciation.
     :param image: the image to execute background separation on.
-    :param kernel: the structuring element used for morphologic filtering.
     :return: the foreground image
     """
-    fgmask = backgroundsubstractor.apply(image)
+    
+    # structuring elements for morphologic filtering
+    kernel1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
+    kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 30))
+
+
+    fgmask = np.uint8(backgroundsubstractor.apply(image)/255)
+
+    # filter the bushes and clear pedestrians
+    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel1, iterations=1))
+    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_DILATE, kernel2, iterations=2))
 
     # apply the mask on the image
     image[:, :, 0] = image[:, :, 0] * fgmask
