@@ -6,7 +6,7 @@ from . import detection
 from . import tracking
 from . import least_square_tracking
 
-from .detection import hogSVMDetection, backgroundSubstraction
+from .detection import hogSVMDetection, backgroundSubstraction, removeRedundantRectangles
 
 from .tracking import bruteForceMatching, updateRectangle, updateMargin, updateKeypointsCoordinates, \
     updateRectangleCenter, findTranslationTransf

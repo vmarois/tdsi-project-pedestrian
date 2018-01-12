@@ -30,19 +30,19 @@ def backgroundSubstraction(backgroundsubstractor, image):
     It also applies a morphologic operation (open then close) to reduce the noise.
     :param backgroundsubstractor: the cv2.bgsegm.createBackgroundSubtractorMOG() instanciation.
     :param image: the image to execute background separation on.
+    :param kernel: the structuring element used for morphologic filtering.
     :return: the foreground image
     """
-    
-    # structuring elements for morphologic filtering
+
     kernel1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
     kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 30))
 
 
     fgmask = np.uint8(backgroundsubstractor.apply(image)/255)
 
-    # filter the bushes and clear pedestrians
-    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel1, iterations=1))
-    fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_DILATE, kernel2, iterations=2))
+    # filter the bushes on the mask (maybe not necessary)
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel1, iterations=1)
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_DILATE, kernel2, iterations=2)
 
     # apply the mask on the image
     image[:, :, 0] = image[:, :, 0] * fgmask
@@ -50,3 +50,31 @@ def backgroundSubstraction(backgroundsubstractor, image):
     image[:, :, 2] = image[:, :, 2] * fgmask
 
     return image
+
+
+def removeRedundantRectangles(rects):
+    rect_middle = []
+
+    for rect in rects:
+        rect_middle = np.append(rect_middle, [(rect[2] + rect[0]) / 2, (rect[3] + rect[1]) / 2], axis=0)
+
+    i = 0
+    rect_idx = []
+
+    while i < len(rect_middle):
+        k = 0
+        while k < len(rect_middle):
+            if k != i:
+                if np.bool(abs(rect_middle[i] - rect_middle[k]) < 10) & np.bool(abs(rect_middle[i + 1] - rect_middle[k + 1]) < 10):
+                    f = np.sort((i / 2, k / 2))
+                    rect_idx = np.append(rect_idx, f, axis=0)
+            k += 2
+        i += 2
+
+    rect_idx = [elt for idx, elt in enumerate(rect_idx) if idx % 2 != 0]
+    rect_idx = set(rect_idx)
+    rect_idx = sorted(rect_idx, reverse=True)
+    for value in rect_idx:
+        rects = np.delete(rects, value, axis=0)
+
+    return rects

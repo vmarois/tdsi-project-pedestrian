@@ -21,6 +21,7 @@ surf = cv2.xfeatures2d.SURF_create(400)
 # boolean used to indicate if we have already detected a pedestrian or not. If yes, we skip the function call
 # to hogSVMDetection
 PED_ALREADY_DET = False
+RESTART_SVM_DET = 20
 
 # int used to know if the current frame is the reference frame for the BruteForce Matching or not. If yes, this means
 # we cannot do a matching yet, and we just have to store the rectangle, keypoints & descriptors
@@ -32,8 +33,14 @@ SVMDETECT = 0
 # empty list to store rectangle coordinates
 rects = []
 
+# empty list to store keypoints from all pedestrians
+allKeypoints = []
+
 # empty list to store the previous keypoints
 previousKeypoints = []
+
+# empty list to store descriptors from all pedestrians
+allDescriptors = []
 
 # empty numpy.ndarray to store the previous descriptors
 previousDescriptors = np.empty((0, 0))
@@ -60,93 +67,129 @@ for imagePath in trackingImages:
     image = backgroundSubstraction(fgbg, image)
 
     if not PED_ALREADY_DET:  # no pedestrian has been detected
-	
-	if not SVMDETECT == 10:
-	    SVMDETECT += 1
-	else:
-	    print('Performing HOG + SVM pedestrian detection')
-	    rects = hogSVMDetection(hog, image)
-	    SVMDETECT = 0
 
-    if len(rects) > 0:  # at least one pedestrian has been detected
-        print('Pedestrian detected')
-        (xA, yA, xB, yB) = rects[0]  # Get the region coord. to search for a pedestrian (corresponds to previous frame).
-        # only care about the first pedestrian for now
-
-        print('(xA, yA, xB, yB) = ', (xA, yA, xB, yB))
-        pedestrian = image[yA: yB, xA: xB]  # select the region to search for the keypoints
-
-        print('Number of previous keypoints : ', len(previousKeypoints))
-        print('Number of associated descriptors : ', previousDescriptors.shape)
-
-        # find keypoints and descriptors using SURF
-        currentKeypoints, currentDescriptors = surf.detectAndCompute(pedestrian, None)
-        print('Number of current keypoints found: ', len(currentKeypoints))
-        print('Number of associated descriptors : ', currentDescriptors.shape)
-
-        # update keypoints coordinates : should do it right after SURF detection to avoid issues when
-        # performing brute force matching
-        currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
-        print('Keypoints coordinates updated')
-
-        # save all current keypoints & descriptors
-        allCurrentKeypoints = currentKeypoints
-        allCurrentDescriptors = currentDescriptors
-
-        if DETECTION_COUNT == 0:
-            print('This is the reference frame. Not performing Brute Force Matching & LeastSquare.')
-
+        if not SVMDETECT == 10:
+            SVMDETECT += 1
         else:
-            print('We should have some reference from the previous frame. Performing BFMatching & LeastSquare.')
-            # perform brute force matching
-            previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors = bruteForceMatching(
-                previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors)
-            print('Number of matched current Keypoints : ', len(currentKeypoints))
+            print('Performing HOG + SVM pedestrian detection')
+            rects = hogSVMDetection(hog, image)
+            SVMDETECT = 0
 
-            ########## SELECT THE FUNCTION TO FIND AN AFFINE TRANSFORM USING THE KEYPOINTS
-            # 'reduced' affine transform
-            theta, alpha, tx, ty = findReducedAffTrans(previousKeypoints, currentKeypoints)
+    #### UNCOMMENT THE NEXT LINE TO PERFORM MORE THAN ONE TRACKING
+    '''
+    else:
+        if RESTART_SVM_DET != 0:
+            RESTART_SVM_DET -= 1
+        else:
+            print('Performing HOG + SVM detection to check for new pedestrians')
+            newrects = hogSVMDetection(hog, image)
+            RESTART_SVM_DET = 20
+            rects = np.append(rects[:], newrects, axis=0)
+    '''
+    # Remove coordinates of rect already detected
+    rects = removeRedundantRectangles(rects)
+    print(len(rects))
 
-            # only a translation motion
-            #tx, ty = findTranslationTransf(previousKeypoints, currentKeypoints)
-            #theta = 0
-            #alpha = 1
-            print('theta, alpha, tx, ty = ', theta, alpha, tx, ty)
+    if len(rects) > 0: # at least one pedestrian has been detected
 
-            # 'general' affine transform
-            #affTransMatrix = findGeneralAffTrans(previousKeypoints, currentKeypoints)
-            #################################################################
+        idx = 0
 
-            ########## SELECT THE CORRESPONDING FUNCTION TO UPDATE BOUNDING RECTANGLE COORDINATES
-            # for 'reduced' affine transform & translation
-            xA, yA, xB, yB = updateRectangleReducedAffTrans((xA,yA,xB,yB), theta, alpha, tx, ty)
+        for idx in range(len(rects)):
 
-            # for 'general' affine transform
-            #xA, yA, xB, yB = updateRectangleGeneralAffTrans((xA, yA, xB, yB), affTransMatrix)
-            ##################################################################
+            print('Pedestrian detected')
+            (xA, yA, xB, yB) = rects[idx]  # Get the region coord. to search for a pedestrian (corresponds to previous frame).
 
-            # cast to int
-            xA, yA, xB, yB = [int(x) for x in [xA, yA, xB, yB]]
+            # Store the corresponding keypoints and descriptors if the pedestrian has already been detected
+            if len(allKeypoints) > idx:
+                previousKeypoints = allKeypoints[idx]
+                previousDescriptors = allDescriptors[idx]
 
-        # save the new bounding rectangle coordinates
-        rects[0] = (xA, yA, xB, yB)
+            print('(xA, yA, xB, yB) = ', (xA, yA, xB, yB))
+            pedestrian = image[(yA): (yB-40), (xA): (xB)]  # select the region to search for the keypoints
 
-        # save all keypoints detected in this frame as the previous ones
-        previousKeypoints = allCurrentKeypoints
+            print('Number of previous keypoints : ', len(previousKeypoints))
+            print('Number of associated descriptors : ', previousDescriptors.shape)
 
-        # save associated descriptors
-        previousDescriptors = allCurrentDescriptors
-        print('previousDescriptors : ', previousDescriptors.shape)
+            # find keypoints and descriptors using SURF
+            currentKeypoints, currentDescriptors = surf.detectAndCompute(pedestrian, None)
+            print('Number of current keypoints found: ', len(currentKeypoints))
+            print('Number of associated descriptors : ', currentDescriptors.shape)
 
-        # draw the bounding rectangle & keypoints
-        cv2.rectangle(disp_image, (xA, yA), (xB, yB), (0, 255, 0), 2)
-        disp_image = cv2.drawKeypoints(disp_image, currentKeypoints, disp_image)
+            # update keypoints coordinates : should do it right after SURF detection to avoid issues when
+            # performing brute force matching
+            currentKeypoints = updateKeypointsCoordinates(currentKeypoints, xA, yA)
+            print('Keypoints coordinates updated')
 
-        PED_ALREADY_DET = True
-        DETECTION_COUNT += 1
-        print('DETECTION_COUNT = ', DETECTION_COUNT)
+            # save all current keypoints & descriptors
+            allCurrentKeypoints = currentKeypoints
+            allCurrentDescriptors = currentDescriptors
 
-    cv2.imshow(imagePath, disp_image)
+            if DETECTION_COUNT <= idx:
+                print('This is the reference frame. Not performing Brute Force Matching & LeastSquare.')
+                DETECTION_COUNT += 1
+
+            else:
+                print('We should have some reference from the previous frame. Performing BFMatching & LeastSquare.')
+                # perform brute force matching
+                previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors = bruteForceMatching(
+                    previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors)
+                print('Number of matched current Keypoints : ', len(currentKeypoints))
+
+                ########## SELECT THE FUNCTION TO FIND AN AFFINE TRANSFORM USING THE KEYPOINTS
+                # 'reduced' affine transform
+                #theta, alpha, tx, ty = findReducedAffTrans(previousKeypoints, currentKeypoints)
+
+                # only a translation motion
+                tx, ty = findTranslationTransf(previousKeypoints, currentKeypoints)
+                theta = 0
+                alpha = 1
+                print('theta, alpha, tx, ty = ', theta, alpha, tx, ty)
+
+                # 'general' affine transform
+                # affTransMatrix = findGeneralAffTrans(previousKeypoints, currentKeypoints)
+                #################################################################
+
+                ########## SELECT THE CORRESPONDING FUNCTION TO UPDATE BOUNDING RECTANGLE COORDINATES
+                # for 'reduced' affine transform & translation
+                xA, yA, xB, yB = updateRectangleReducedAffTrans((xA, yA, xB, yB), theta, alpha, tx, ty)
+
+                # for 'general' affine transform
+                #xA, yA, xB, yB = updateRectangleGeneralAffTrans((xA, yA, xB, yB), affTransMatrix)
+                ##################################################################
+
+                # cast to int
+                xA, yA, xB, yB = [int(x) for x in [xA, yA, xB, yB]]
+
+            # save the new bounding rectangle coordinates
+            rects[idx] = (xA, yA, xB, yB)
+
+            # save all keypoints detected in this frame as the previous ones
+            previousKeypoints = allCurrentKeypoints
+
+            # save associated descriptors
+            previousDescriptors = allCurrentDescriptors
+            print('previousDescriptors : ', previousDescriptors.shape)
+
+            # Replace or add previous Keypoints and descriptors of this pedestrian to the general lists of keypoints and
+            #  descriptors
+            if len(allKeypoints) > idx:
+                allKeypoints.insert(idx,previousKeypoints)
+                allKeypoints.pop(idx+1)
+                allDescriptors.insert(idx, previousDescriptors)
+                allDescriptors.pop(idx + 1)
+            else:
+                allKeypoints.append(previousKeypoints)
+                allDescriptors.append(previousDescriptors)
+
+            # draw the bounding rectangle & keypoints
+            cv2.rectangle(disp_image, (xA, yA), (xB, yB), (0, 255, 0), 2)
+            disp_image = cv2.drawKeypoints(disp_image, currentKeypoints, disp_image)
+
+            PED_ALREADY_DET = True
+            print('DETECTION_COUNT = ', DETECTION_COUNT)
+            print('\n')
+
+    cv2.imshow('Tracking', disp_image)
     cv2.waitKey(100)
     cv2.destroyAllWindows()
     print('\n')
