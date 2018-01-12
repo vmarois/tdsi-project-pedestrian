@@ -105,7 +105,7 @@ for imagePath in trackingImages:
                 previousDescriptors = allDescriptors[idx]
 
             print('(xA, yA, xB, yB) = ', (xA, yA, xB, yB))
-            pedestrian = image[(yA): (yB-40), (xA): (xB)]  # select the region to search for the keypoints
+            pedestrian = image[yA:yB, xA:xB]  # select the region to search for the keypoints
 
             print('Number of previous keypoints : ', len(previousKeypoints))
             print('Number of associated descriptors : ', previousDescriptors.shape)
