@@ -37,8 +37,8 @@ For the object tracking part, we are working on a [SIFT](https://en.wikipedia.or
 * Just clone the repository :
 
 
-    git clone git@gitlab.in2p3.fr:olivier.bernard/tdsi-project-pedestrian.git
-
+        git clone git@gitlab.in2p3.fr:olivier.bernard/tdsi-project-pedestrian.git
+    
 
 ### Who do I talk to? ###
 
