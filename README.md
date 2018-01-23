@@ -34,10 +34,11 @@ For the object tracking part, we are working on a [SIFT](https://en.wikipedia.or
 
 ### How do I get set up? ###
 * Make sure OpenCV is installed,
-* Just clone the repository :
+* Just clone the repository & install the other `python` modules:
 
 
         git clone git@gitlab.in2p3.fr:olivier.bernard/tdsi-project-pedestrian.git
+        cd tdsi-project-pedestrian && pip3 install -r requirements.txt
     
 
 ### Who do I talk to? ###
