@@ -56,7 +56,7 @@ for imagePath in trackingImages:
     image = cv2.imread(imagePath)
     image = imutils.resize(image, width=min(480, image.shape[1]))
     disp_image = image.copy()
-    image = backgroundSubstraction(fgbg, image)
+    #image = backgroundSubstraction(fgbg, image)
 
     if not PED_ALREADY_DET:  # no pedestrian has been detected
         rects = hogSVMDetection(hog, image)
@@ -117,6 +117,6 @@ for imagePath in trackingImages:
         print('DETECTION_COUNT = ', DETECTION_COUNT)
 
     cv2.imshow("{}".format(imagePath), disp_image)
-    cv2.waitKey(1)
+    cv2.waitKey(0)
     cv2.destroyAllWindows()
     print('\n')

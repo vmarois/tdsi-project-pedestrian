@@ -38,4 +38,4 @@ for imagePath in trackingImages:
 
     # display result
     cv2.imshow("Tracking", image)
-    cv2.waitKey(0)
+    cv2.waitKey(100)
