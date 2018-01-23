@@ -1,4 +1,5 @@
-# this file is part of tdsi-pedestrian
+# This file is part of tdsi-project-pedestrian
+# This file shows the use of non-least squares method to update the bounding rectangle.
 
 import cv2
 import numpy as np
@@ -12,9 +13,6 @@ hog = cv2.HOGDescriptor()
 # set the Support Vector Machine to be pre-trained pedestrian detector
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
-# initialize background substractor object
-fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
-
 # initialize the SURF object & set Hessian Threshold to 400
 surf = cv2.xfeatures2d.SURF_create(400)
 
@@ -23,7 +21,7 @@ surf = cv2.xfeatures2d.SURF_create(400)
 PED_ALREADY_DET = False
 
 # int used to know if the current frame is the reference frame for the BruteForce Matching or not. If yes, this means
-# we cannot do a matching yet, and we just have to store the rectangle, descriptors
+# we cannot do a matching yet, and we just have to store the rectangle & descriptors
 DETECTION_COUNT = 0
 
 # initial margin values
@@ -50,13 +48,9 @@ NbTotImages = len(trackingImages)
 for imagePath in trackingImages:
 
     imagePath = data_path + imagePath
-    print(imagePath)
-
     # load the image and resize it to reduce detection time and improve detection accuracy
     image = cv2.imread(imagePath)
     image = imutils.resize(image, width=min(480, image.shape[1]))
-    disp_image = image.copy()
-    #image = backgroundSubstraction(fgbg, image)
 
     if not PED_ALREADY_DET:  # no pedestrian has been detected
         rects = hogSVMDetection(hog, image)
@@ -96,9 +90,12 @@ for imagePath in trackingImages:
                 previousKeypoints, previousDescriptors, currentKeypoints, currentDescriptors)
             print('Number of matched current Keypoints : ', len(currentKeypoints))
 
-            # update the bounding rectangles coordinates and save them
+            ##########################
+            # Reduce the margin based on the number of frames since 1st detection
             xMargin, yMargin = updateMargin(xMarginStart, yMarginStart, NbTotImages, DETECTION_COUNT)
+            # update the bounding rectangles coordinates (using the margin) and save them
             xA, yA, xB, yB = updateRectangleCenter(currentKeypoints, xMargin=xMargin, yMargin=yMargin)
+            ##########################
 
         # save all keypoints detected in this frame as the previous ones
         previousKeypoints = allCurrentKeypoints
@@ -109,14 +106,14 @@ for imagePath in trackingImages:
         rects[0] = (xA, yA, xB, yB)
 
         # draw the bounding rectangle & keypoints
-        cv2.rectangle(disp_image, (xA, yA), (xB, yB), (0, 255, 0), 2)
-        disp_image = cv2.drawKeypoints(disp_image, currentKeypoints, disp_image)
+        cv2.rectangle(image, (xA, yA), (xB, yB), (0, 255, 0), 2)
+        disp_image = cv2.drawKeypoints(image, currentKeypoints, image)
 
         PED_ALREADY_DET = True
         DETECTION_COUNT += 1
         print('DETECTION_COUNT = ', DETECTION_COUNT)
 
-    cv2.imshow("{}".format(imagePath), disp_image)
-    cv2.waitKey(0)
+    cv2.imshow("{}".format(imagePath), image)
+    cv2.waitKey(100)
     cv2.destroyAllWindows()
     print('\n')

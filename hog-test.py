@@ -1,4 +1,5 @@
-# this file is part of tdsi-pedestrian
+# This file is part of tdsi-project-pedestrian
+# This file shows the use of {HOG + SVM} to detect pedestrians on each frame, hence following their motion
 
 import cv2
 import numpy as np
@@ -53,6 +54,7 @@ for imagePath in trackingImages:
             # draw keypoints on the pedestrian
             img = cv2.drawKeypoints(pedestrian, kp, pedestrian)
 
+            # draw bounding rectangle
             cv2.rectangle(image, (xA, yA), (xB, yB), (0, 255, 0), 2)
 
         # show some information on the number of bounding boxes
@@ -60,6 +62,6 @@ for imagePath in trackingImages:
 
     # show the output images
     cv2.imshow("{}".format(imagePath), image)
-    cv2.waitKey(1)  # display images at roughly 15 fps
+    cv2.waitKey(100)  # display images at roughly 15 fps
     cv2.destroyAllWindows()
 

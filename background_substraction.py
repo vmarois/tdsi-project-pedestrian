@@ -1,8 +1,10 @@
+# This file is part of tdsi-project-pedestrian
+# This file shows the background/foreground segmentation algorithm
+
 import cv2
 import os
 
-
-# function to subtract the background using Gaussian Mixture-based Background/Foreground Segmentation Algorithm
+# function to subtract the background using Gaussian Mixture-based background/foreground segmentation algorithm
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
 
 # elliptic kernel for morpho math
@@ -26,10 +28,9 @@ for imagePath in trackingImages:
     # apply the  background subtraction algorithm
     fgmask = fgbg.apply(image)
 
-    # filter the bushes on the mask (maybe not necessary)
+    # filter the bushes on the mask
     fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=2))/255
     fgmask = (cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=5))
-
 
     # apply the mask on the image
     image[:, :, 0] = image[:, :, 0] * fgmask
